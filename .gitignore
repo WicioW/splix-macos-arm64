@@ -1,2 +1,6 @@
 build/
 .DS_Store
+scan-*.pdf
+scan-*.png
+scan-*.jpeg
+Scan.app/

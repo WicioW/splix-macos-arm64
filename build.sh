@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build a native arm64 SpliX rastertoqpdl filter and the Samsung SCX-3400 PPD on macOS.
+# Build a native arm64 SpliX rastertoqpdl filter and every SpliX PPD on macOS.
 # Output goes to dist/. No sudo needed; see install.sh for installation.
 set -e
 
@@ -29,16 +29,25 @@ sed -i '' 's/sed -re/sed -Ee/' "$SRC/ppd/compile.sh"
 
 PATH="$ROOT/tools:$PATH" make -C "$SRC"
 
-# Generate PPDs from the driver source with the system ppdc.
-( cd "$SRC/ppd" && sh compile.sh samsung.drv.in drv && mkdir -p out && ppdc -d out samsung.drv )
+# Generate PPDs for every vendor with the system ppdc.
+cd "$SRC/ppd"
+mkdir -p out
+for drv in *.drv.in; do
+    sh compile.sh "$drv" drv
+    ppdc -d out "${drv%.in}"
+done
+cd "$ROOT"
 
-mkdir -p "$ROOT/dist"
+rm -rf "$ROOT/dist"
+mkdir -p "$ROOT/dist/ppd"
 cp "$SRC/optimized/rastertoqpdl" "$ROOT/dist/rastertoqpdl"
-# Point the PPD at the absolute install path: /usr/libexec/cups/filter is SIP-protected,
-# so the filter lives under /Library/Printers instead.
-sed "s|^\*cupsFilter: \"application/vnd.cups-raster 0 rastertoqpdl\"|*cupsFilter: \"application/vnd.cups-raster 0 $FILTERPATH\"|" \
-    "$SRC/ppd/out/scx3400.ppd" > "$ROOT/dist/Samsung-SCX-3400-splix.ppd"
+
+# Point each PPD at the absolute install path: /usr/libexec/cups/filter is
+# SIP-protected, so the filter lives under /Library/Printers instead.
+for ppd in "$SRC/ppd/out"/*.ppd; do
+    sed "s|^\*cupsFilter: \"application/vnd.cups-raster 0 rastertoqpdl\"|*cupsFilter: \"application/vnd.cups-raster 0 $FILTERPATH\"|" \
+        "$ppd" > "$ROOT/dist/ppd/$(basename "$ppd")"
+done
 
 file "$ROOT/dist/rastertoqpdl"
-grep -a '^\*cupsFilter' "$ROOT/dist/Samsung-SCX-3400-splix.ppd"
-echo "Built. PPDs for every other SpliX model are in build/splix-master/ppd/out/."
+echo "$(ls "$ROOT/dist/ppd" | wc -l | tr -d ' ') PPDs in dist/ppd/"
