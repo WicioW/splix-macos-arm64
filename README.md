@@ -214,6 +214,31 @@ Re-run it after changing `scan.sh`.
 The app is unsigned. Built locally it carries no quarantine flag and opens normally; if
 you move it between machines, Gatekeeper will ask.
 
+### Shipping the app to someone else
+
+`Scan.app` is a build artifact and is not in the repository — `./make-app.sh` recreates
+it in a second. To attach it to a GitHub release, zip it with `ditto`, which keeps the
+bundle and its signature intact (a plain `zip` may not):
+
+```sh
+./make-app.sh
+ditto -c -k --keepParent Scan.app Scan.app.zip
+gh release create v1 Scan.app.zip --notes "Scanner GUI"
+```
+
+Anyone who downloads that zip in a browser gets it flagged with `com.apple.quarantine`,
+and the app is only ad-hoc signed, not notarized by Apple. macOS will refuse to open it
+until they go to System Settings › Privacy & Security and press **Open Anyway** once, or
+run:
+
+```sh
+xattr -dr com.apple.quarantine Scan.app
+```
+
+Cloning the repository and building locally avoids all of that: git does not set the
+quarantine attribute. Removing the warning for downloads needs a paid Apple Developer
+ID and notarization; there is no middle option.
+
 ### Sleep
 
 These printers drop off the network entirely in deep sleep — no ping, no Bonjour, no
