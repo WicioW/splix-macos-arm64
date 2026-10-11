@@ -1,0 +1,12 @@
+#!/bin/sh
+# Minimal pkg-config shim: answers only for "cups" on macOS, which ships no cups.pc.
+for a in "$@"; do
+  case "$a" in
+    --exists) exit 0 ;;
+    --cflags) echo "" ;;
+    --libs) echo "-lcups" ;;
+    --variable=cups_serverbin) echo "/usr/libexec/cups" ;;
+    --variable=cups_datadir) echo "/usr/share/cups" ;;
+  esac
+done
+exit 0
